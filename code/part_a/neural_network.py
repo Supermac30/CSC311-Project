@@ -6,6 +6,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 
+import matplotlib.pyplot as plt
+
 import numpy as np
 import torch
 
@@ -91,6 +93,11 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     :param num_epoch: int
     :return: None
     """
+
+    # Store performance information for plotting
+    train_losses = []
+    valid_accuracies = []
+
     # Tell PyTorch you are training the model.
     model.train()
 
@@ -122,6 +129,24 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
         valid_acc = evaluate(model, zero_train_data, valid_data)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
+        train_losses.append(train_loss.item())
+        valid_accuracies.append(valid_acc)
+
+    # Plot performance
+    figure, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    ax2.set_xlabel("Epoch")
+    ax1.set_ylabel("Loss")
+    ax2.set_ylabel("Accuracy")
+
+    ax1.plot(train_losses, label="Training Loss")
+    ax2.plot(valid_accuracies, label="Validation Accuracy")
+    ax1.xaxis.get_major_locator().set_params(integer=True)
+
+    ax1.legend()
+    ax2.legend()
+    plt.show()
+
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -157,22 +182,24 @@ def main():
     zero_train_matrix, train_matrix, valid_data, test_data = load_data()
 
     #####################################################################
-    # TODO:                                                             #
     # Try out 5 different k and select the best k using the             #
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = 10
+    k = 200
     num_question = train_matrix.shape[1]
     model = AutoEncoder(num_question, k)
 
     # Set optimization hyperparameters.
-    lr = 0.3
-    num_epoch = 10
+    lr = 0.001
+    num_epoch = 5000
     lamb = 0
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
+
+    test_accuracy = evaluate(model, zero_train_matrix, test_data)
+    print("Test Accuracy:", test_accuracy)
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
