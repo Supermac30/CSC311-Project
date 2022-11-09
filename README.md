@@ -1,6 +1,6 @@
 # CSC311-Project
 
-![](https://imgs.xkcd.com/comics/machine_learning_2x.png)
+<img src="https://imgs.xkcd.com/comics/machine_learning_2x.png" data-canonical-src="https://gyazo.com/eb5c5741b6a9a16c692170a41a49c858.png" width="300" />
 
 ## Project Link
 http://www.cs.toronto.edu/~rahulgk/courses/csc311_f22/homework/project.pdf
