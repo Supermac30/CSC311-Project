@@ -60,7 +60,18 @@ def main():
     # the best performance and report the test accuracy with the        #
     # chosen k*.                                                        #
     #####################################################################
-    pass
+    k_val = [1, 6, 11, 16, 21, 26]
+    acc_best = 0
+    k_best = k_val[0]
+    for k in k_val:
+        acc_temp = knn_impute_by_user(sparse_matrix, val_data, k)
+        if (acc_temp > acc_best):
+            acc_best = acc_temp
+            k_best = k
+    print("k_best = " + str(k_best) + "; final_test_accuracy = " + str(knn_impute_by_user(sparse_matrix, test_data, k_best)))
+   # TODO: NT Plot for part(a) and change implementation for part(b) due to part(a).
+        
+    
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
