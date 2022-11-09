@@ -66,11 +66,12 @@ class AutoEncoder(nn.Module):
         :return: user vector.
         """
         #####################################################################
-        # TODO:                                                             #
         # Implement the function as described in the docstring.             #
         # Use sigmoid activations for f and g.                              #
         #####################################################################
-        out = inputs
+        activation = nn.Sigmoid()
+        hidden_layer = activation(self.g(inputs))
+        out = activation(self.h(hidden_layer))
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -90,8 +91,6 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     :param num_epoch: int
     :return: None
     """
-    # TODO: Add a regularizer to the cost function. 
-    
     # Tell PyTorch you are training the model.
     model.train()
 
@@ -100,7 +99,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     num_student = train_data.shape[0]
 
     for epoch in range(0, num_epoch):
-        train_loss = 0.
+        # Initialize the loss with the L_2 regularization
+        train_loss = model.get_weight_norm() * lamb / 2
 
         for user_id in range(num_student):
             inputs = Variable(zero_train_data[user_id]).unsqueeze(0)
@@ -162,13 +162,14 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = None
-    model = None
+    k = 10
+    num_question = train_matrix.shape[1]
+    model = AutoEncoder(num_question, k)
 
     # Set optimization hyperparameters.
-    lr = None
-    num_epoch = None
-    lamb = None
+    lr = 0.3
+    num_epoch = 10
+    lamb = 0
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
