@@ -1,6 +1,8 @@
 from sklearn.impute import KNNImputer
 from utils import *
 import matplotlib.pyplot as plt
+import sys
+np.set_printoptions(threshold=sys.maxsize) # To print full matrix/array instead of truncated ones.
 
 
 def knn_impute_by_user(matrix, valid_data, k):
@@ -20,7 +22,7 @@ def knn_impute_by_user(matrix, valid_data, k):
     
     mat = nbrs.fit_transform(matrix)
 
-    #print(matrix[0], mat[0])
+    print(matrix, mat)
 
     acc = sparse_matrix_evaluate(valid_data, mat)
     return acc
