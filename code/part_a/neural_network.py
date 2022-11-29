@@ -6,6 +6,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 
+import matplotlib.pyplot as plt
+
 import numpy as np
 import torch
 
@@ -66,11 +68,12 @@ class AutoEncoder(nn.Module):
         :return: user vector.
         """
         #####################################################################
-        # TODO:                                                             #
         # Implement the function as described in the docstring.             #
         # Use sigmoid activations for f and g.                              #
         #####################################################################
-        out = inputs
+        activation = nn.Sigmoid()
+        hidden_layer = activation(self.g(inputs))
+        out = activation(self.h(hidden_layer))
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -90,8 +93,11 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     :param num_epoch: int
     :return: None
     """
-    # TODO: Add a regularizer to the cost function. 
-    
+
+    # Store performance information for plotting
+    train_losses = []
+    valid_accuracies = []
+
     # Tell PyTorch you are training the model.
     model.train()
 
@@ -100,7 +106,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     num_student = train_data.shape[0]
 
     for epoch in range(0, num_epoch):
-        train_loss = 0.
+        # Initialize the loss with the L_2 regularization
+        train_loss = model.get_weight_norm() * lamb / 2
 
         for user_id in range(num_student):
             inputs = Variable(zero_train_data[user_id]).unsqueeze(0)
@@ -122,6 +129,24 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
         valid_acc = evaluate(model, zero_train_data, valid_data)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
+        train_losses.append(train_loss.item())
+        valid_accuracies.append(valid_acc)
+
+    # Plot performance
+    figure, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    ax2.set_xlabel("Epoch")
+    ax1.set_ylabel("Loss")
+    ax2.set_ylabel("Accuracy")
+
+    ax1.plot(train_losses, label="Training Loss")
+    ax2.plot(valid_accuracies, label="Validation Accuracy")
+    ax1.xaxis.get_major_locator().set_params(integer=True)
+
+    ax1.legend()
+    ax2.legend()
+    plt.show()
+
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -157,21 +182,24 @@ def main():
     zero_train_matrix, train_matrix, valid_data, test_data = load_data()
 
     #####################################################################
-    # TODO:                                                             #
     # Try out 5 different k and select the best k using the             #
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = None
-    model = None
+    k = 200
+    num_question = train_matrix.shape[1]
+    model = AutoEncoder(num_question, k)
 
     # Set optimization hyperparameters.
-    lr = None
-    num_epoch = None
-    lamb = None
+    lr = 0.001
+    num_epoch = 5000
+    lamb = 0
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
+
+    test_accuracy = evaluate(model, zero_train_matrix, test_data)
+    print("Test Accuracy:", test_accuracy)
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
