@@ -113,6 +113,9 @@ def question_difficulty_occurrence(sparse_matrix, reverse=False):
     # 1. Use <sparse_matrix.toarray()>.
     # 2. Python sort dict key by dict value. Note "Less occurrence" = "More difficult for ML".
     matrix_question_based = sparse_matrix.toarray().transpose()
+    
+    # TODO: USING MOST DIFFICULT SUBJECT IT BELONGS TO SORT!!!
+        
     return ... # TODO: How does Mark's sorting work on matrix exactly?
 
 
@@ -124,6 +127,7 @@ def question_difficulty_correctness_entropy(sparse_matrix, reverse=False):
     # Same as <question_difficulty_occurrence>. Note "Higher entropy" = "More difficult for ML".
 
 
+    # TODO: USING MOST DIFFICULT SUBJECT IT BELONGS TO SORT!!!
 
 
 
