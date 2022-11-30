@@ -1,6 +1,7 @@
 """
-A collection of various methods for sorting the data from easiest
-to hardest.
+A collection of various methods for sorting the data from easiest to hardest.
+
+Student-based!
 
 All data is assumed to be a sparse matrix
 """
