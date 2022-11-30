@@ -1,6 +1,8 @@
 from utils import *
 
 import numpy as np
+import matplotlib.pyplot as plt
+import json
 
 
 def sigmoid(x):
@@ -21,14 +23,18 @@ def neg_log_likelihood(data, theta, beta):
     :return: float
     """
     #####################################################################
-    # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    log_lklihood = 0.
+
+    # theta[i]-beta[j]
+    diffs = beta[data["question_id"]] - theta[data["user_id"]]
+    signed_diffs = np.where(data["is_correct"], diffs, -diffs)
+    log_likelihood = -np.mean(np.logaddexp(0, signed_diffs))
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
-    return -log_lklihood
+    return -log_likelihood
 
 
 def update_theta_beta(data, lr, theta, beta):
@@ -49,13 +55,26 @@ def update_theta_beta(data, lr, theta, beta):
     :return: tuple of vectors
     """
     #####################################################################
-    # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    pass
+    user_id, question_id, is_correct = data["user_id"], data["question_id"], data["is_correct"]
+    diffs = theta[user_id] - beta[question_id]
+    sigmoid_diffs = lr * (is_correct - sigmoid(diffs))
+
+    theta_i_diffs = [[] for _ in theta]
+    beta_j_diffs = [[] for _ in beta]
+    for k in range(len(sigmoid_diffs)):
+        theta_i_diffs[user_id[k]].append(sigmoid_diffs[k])
+        beta_j_diffs[question_id[k]].append(sigmoid_diffs[k])
+
+    theta_derivs = np.array([np.mean(x) for x in theta_i_diffs])
+    beta_derivs = np.array([np.mean(x) for x in beta_j_diffs])
+    theta = theta + theta_derivs
+    beta = beta - beta_derivs
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
+
     return theta, beta
 
 
@@ -70,23 +89,33 @@ def irt(data, val_data, lr, iterations):
     is_correct: list}
     :param lr: float
     :param iterations: int
-    :return: (theta, beta, val_acc_lst)
+    :return: (theta, beta, val_acc_list, train_neg_lld_list, val_neg_lld_list)
     """
-    # TODO: Initialize theta and beta.
-    theta = None
-    beta = None
+    print(lr, iterations)
+    # Initialize theta and beta.
+    num_users = max(data["user_id"]) + 1
+    num_questoins = max(data["question_id"]) + 1
+    theta = np.zeros(num_users)
+    beta = np.zeros(num_questoins)
 
-    val_acc_lst = []
+    val_acc_list = []
 
+    train_neg_lld_list = []
+    val_neg_lld_list = []
     for i in range(iterations):
         neg_lld = neg_log_likelihood(data, theta=theta, beta=beta)
+        val_neg_lld = neg_log_likelihood(val_data, theta, beta)
+        train_neg_lld_list.append(neg_lld)
+        val_neg_lld_list.append(val_neg_lld)
+
         score = evaluate(data=val_data, theta=theta, beta=beta)
-        val_acc_lst.append(score)
-        print("NLLK: {} \t Score: {}".format(neg_lld, score))
+        val_acc_list.append(score)
+        # print("NLLK: {} \t Score: {}".format(neg_lld, score))
         theta, beta = update_theta_beta(data, lr, theta, beta)
 
     # TODO: You may change the return values to achieve what you want.
-    return theta, beta, val_acc_lst
+    return theta, beta, val_acc_list, train_neg_lld_list, val_neg_lld_list
+    # return {"theta":theta, "beta":beta, "val_acc_list": val_acc_list, "train_neg_lld_list": train_neg_lld_list, "val_neg_lld_list": val_neg_lld_list}
 
 
 def evaluate(data, theta, beta):
@@ -105,31 +134,107 @@ def evaluate(data, theta, beta):
         p_a = sigmoid(x)
         pred.append(p_a >= 0.5)
     return np.sum((data["is_correct"] == np.array(pred))) \
-           / len(data["is_correct"])
+        / len(data["is_correct"])
+
+
+def save_hyper_param_data(file_name: str, irts, learning_rates):
+    with open(file_name, "w") as f:
+        cleaned_up = {}
+        for i in range(len(irts)):
+            theta, beta, val_acc_list, train_llds, val_llds = irts[i]
+            cleaned_up[learning_rates[i]] = {"theta": list(theta), "beta": list(
+                beta), "val_acc_list": val_acc_list, "train_llds": train_llds, "val_llds": val_llds}
+        json.dump(cleaned_up, f)
+
+
+def get_hyper_param_data(file_name: str):
+    with open(file_name, "r") as f:
+        data_obj = json.load(f)
+
+    irts = []
+    learning_rates = sorted(list(data_obj.keys()))
+    for lr in learning_rates:
+        run_obj = data_obj[lr]
+        irts.append((np.array(run_obj["theta"]), np.array(
+            run_obj["beta"]), run_obj["val_acc_list"], run_obj["train_llds"], run_obj["val_llds"]))
+
+    learning_rates = [float(lr) for lr in learning_rates]
+
+    return learning_rates, irts
+
+
+def plot_lld_curves(train_llds, val_llds, save_file_name):
+    fig, (ax_train, ax_val) = plt.subplots(2, sharey=True)
+
+    ax_train.set(xlabel="iteration", ylabel="negative log likelihood",
+                 title="training set")
+    ax_val.set(xlabel="iteration", ylabel="negative log likelihood",
+               title="validation set")
+    max_iterations = len(train_llds)
+    ax_train.plot(range(max_iterations), train_llds)
+    ax_val.plot(range(max_iterations), val_llds)
+    ax_train.label_outer()
+    ax_val.label_outer()
+    fig.tight_layout()
+
+    fig.savefig("lld_curves.png", bbox_inches='tight')
+    plt.close(fig)
+
+
+def part_d(theta, beta, q_nums, save_file_name):
+    beta_vals = beta[q_nums].reshape(-1, 1)
+    print(beta_vals)
+    theta_vals = np.arange(-10, 10, 0.1)
+    diffs = np.apply_along_axis(lambda x: theta_vals - x, 1, beta_vals)
+    curves = sigmoid(diffs)
+    for i in range(len(q_nums)):
+        plt.plot(theta_vals, curves[i], label=f"Question {q_nums[i]}")
+
+    plt.xlabel = r"$\theta_i$"
+    plt.ylabel = r"$p(c_{ij} | \theta_i, \beta_j)$"
+    plt.legend()
+    plt.savefig(save_file_name, bbox_inches='tight')
 
 
 def main():
     train_data = load_train_csv("../data")
     # You may optionally use the sparse matrix.
-    sparse_matrix = load_train_sparse("../data")
+    # sparse_matrix = load_train_sparse("../data")
     val_data = load_valid_csv("../data")
     test_data = load_public_test_csv("../data")
 
     #####################################################################
-    # TODO:                                                             #
     # Tune learning rate and number of iterations. With the implemented #
     # code, report the validation and test accuracy.                    #
     #####################################################################
-    pass
+    learning_rates = [(0.005 * i) for i in range(1, 21)]
+    max_iterations = 500
+    irts = [irt(train_data, val_data, lr, max_iterations)
+            for lr in learning_rates]
+
+    save_hyper_param_data('save_hyper_param_runs2.json', irts, learning_rates)
+    # learning_rates, irts = get_hyper_param_data('save_hyper_param_runs.json')
+
+    val_accs = np.array([x[2] for x in irts])
+    opt_lr_index, opt_iters = np.unravel_index(
+        np.argmax(val_accs), val_accs.shape)
+    opt_lr = learning_rates[opt_lr_index]
+    theta, beta, val_acc_list, train_llds, val_llds = irts[opt_lr_index]
+
+    print(f"optimal learning rate and iterations is {opt_lr, opt_iters}")
+    print(f"final train accuracy is {evaluate(val_data, theta, beta)}")
+    print(f"final validation accuracy is {val_acc_list[opt_iters]}")
+    print(f"final test accuracy is {evaluate(test_data, theta, beta)}")
+
+    plot_lld_curves(train_llds, val_llds, "lld_curves.png")
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
 
     #####################################################################
-    # TODO:                                                             #
     # Implement part (d)                                                #
     #####################################################################
-    pass
+    part_d(theta, beta, [3, 10, 100], "question_curves.png")
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
