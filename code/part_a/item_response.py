@@ -91,7 +91,6 @@ def irt(data, val_data, lr, iterations):
     :param iterations: int
     :return: (theta, beta, val_acc_list, train_neg_lld_list, val_neg_lld_list)
     """
-    print(lr, iterations)
     # Initialize theta and beta.
     num_users = max(data["user_id"]) + 1
     num_questoins = max(data["question_id"]) + 1
