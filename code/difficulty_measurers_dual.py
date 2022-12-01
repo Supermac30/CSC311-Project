@@ -11,31 +11,17 @@ When ranking difficulty-level of subject, first
 import numpy as np
 from utils import *
 import math
-
-
-"""
-Rank subjects by the number of occurrence in all questions. "Less occurrence" = "More difficult for ML".
-
-Return dictionary: dict[subject_id] = occurrence.
-"""
-def subject_occurrence():
-    # 1. Work with "question_meta.csv". Check out <load_csv>.
-    # 2. Transform to all elements into an array of id, not counting '0' as it occurs everywhere.
-    # 3. Use Python list method to count occurrnece.
-    
-    # TODO: This function is part of <subject_correctness_entropy>.
-    
+import csv
+import os
 
 
 
-"""
-Rank subjects by the correctness rate. Perhaps use entropy. "Higher entropy" = "More difficult for ML".
-
-Return a dictionary: dict[subject_id] = entropy.
-"""
-def subject_correctness_entropy():
-    # 1. Work with "question_meta.csv" then put into dictionary form: dict[question_id] = a list of subject_id.
-    question_meta_path = ... # TODO: path.
+def find_subjects():
+    """
+    Return a list of <subject_id> as in "question_meta.csv".
+    """ 
+    # Work with "question_meta.csv" then put into dictionary form: dict[question_id] = a list of subject_id.
+    question_meta_path = "code/data/question_meta.csv"
     question_meta_dict = {}
     with open(question_meta_path, "r") as csv_file:
         reader = csv.reader(csv_file)
@@ -51,10 +37,38 @@ def subject_correctness_entropy():
                 question_meta_dict[int(row[0])] = subject_list 
             except ValueError: # Pass first row.
                 pass
+    return question_meta_dict
+
+
+
+def subject_occurrence():
+    """
+    Rank subjects by the number of occurrence in all questions. "Less occurrence" = "More difficult for ML".
+    
+    Return dictionary: dict[subject_id] = occurrence.
+    """
+    # 1. Work with "question_meta.csv". Check out <load_csv>.
+    # 2. Transform to all elements into an array of id, not counting '0' as it occurs everywhere.
+    # 3. Use Python list method to count occurrnece.
+    
+    # TODO: This function is part of <subject_correctness_entropy>.
+    
+
+
+
+def subject_correctness_entropy():
+    """
+    Rank subjects by the correctness rate. Perhaps use entropy. "Higher entropy" = "More difficult for ML".
+    
+    Return a dictionary: dict[subject_id] = entropy.
+    """
+
+    # 1. Work with "question_meta.csv" then put into dictionary form: dict[question_id] = a list of subject_id.
+    question_meta_dict = find_subjects()
 
 
     # 2. Work with "train_data.csv". Or maybe use "train_sparse_matrix" then use <load_npz>.
-    sparse_matrix = load_train_sparse(...).toarray().transpose() # TODO: path! # Question-base matrix!
+    sparse_matrix = load_train_sparse("./data").toarray().transpose() # Question-base matrix!
 
 
     # 3. Create a dictionary <subject_correctness_rate_dict>: dict[subject_id] = (num_occurrence = 0, correctness_rate = 0). If subject doesn't appear in any question that doesn't matter. If it does, then must start with 0.
@@ -82,7 +96,7 @@ def subject_correctness_entropy():
             subject_correctness_rate_dict[subject][1] += num_correct
             subject_correctness_rate_dict[subject][2] += num_all
     
-    subject_entropoy_dict = {}
+    subject_entropy_dict = {}
 
     for subject in subject_correctness_rate_dict:
         # subject_correctness_rate_dict[subject][3] = subject_correctness_rate_dict[subject][1] / subject_correctness_rate_dict[subject][2]
@@ -101,44 +115,48 @@ def subject_correctness_entropy():
             w_1 = math.log2(p_1) # Maybe natural log faster? Idk.
             w_2 = math.log2(p_2)
 
-        subject_entropoy_dict[subject] = -(p_1 * w_1 + p_2 * w_2)
+        subject_entropy_dict[subject] = -(p_1 * w_1 + p_2 * w_2)
 
-    return subject_entropoy_dict
+    return subject_entropy_dict
 
 
-"""
 
-"""
-def question_difficulty_occurrence(sparse_matrix, reverse=False):
+#def question_difficulty_occurrence(sparse_matrix, reverse=False):
     # 1. Use <sparse_matrix.toarray()>.
     # 2. Python sort dict key by dict value. Note "Less occurrence" = "More difficult for ML".
-    matrix_question_based = sparse_matrix.toarray().transpose()
+    
+    #matrix_question_based = sparse_matrix.toarray().transpose()
     
     # TODO: USING MOST DIFFICULT SUBJECT IT BELONGS TO SORT!!!
         
-    return ... # TODO: How does Mark's sorting work on matrix exactly?
+    #return ... # TODO: How does Mark's sorting work on matrix exactly?
 
 
 
-"""
-
-"""
 def question_difficulty_correctness_entropy(sparse_matrix, reverse=False):
     # Same as <question_difficulty_occurrence>. Note "Higher entropy" = "More difficult for ML".
 
-
     # TODO: USING MOST DIFFICULT SUBJECT IT BELONGS TO SORT!!!
+    
+    subject_entropy_dict = subject_correctness_entropy()
+    question_subjects_dict = find_subjects()
 
+
+    def find_entropy(question_id):
+        """
+        Given <question_id>, return the entropy of the "most difficult" subject (i.e. higest entropy) this question belongs to from <subjbect_entropy_dict>.
+        """
+        subjects = question_subjects_dict[question_id]
+        return  max([subject_entropy_dict[subject] for subject in subjects])
+
+
+    matrix_question_based = sparse_matrix.toarray().transpose()
+    return sorted(matrix_question_based, key=lambda question_row: find_entropy(np.where(question_row)), reverse=reverse)  # Python <sorted()> function is default to be ascending order.
 
 
 
 
 
 # TODO: If have time, can merge two measures together, and weight entropy with number of occurrence. Although this needs careful treatment like some normalization.
-"""
-
-"""
-def question_difficulty_CEO(): # Correctness Entropy + Occurrnece.
-    pass
-
-
+#def question_difficulty_CEO(): # Correctness Entropy + Occurrnece.
+#    pass
