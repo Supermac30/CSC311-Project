@@ -22,7 +22,7 @@ def knn_impute_by_user(matrix, valid_data, k):
     
     mat = nbrs.fit_transform(matrix)
 
-    print(matrix, mat)
+    #print(matrix, mat)
 
     acc = sparse_matrix_evaluate(valid_data, mat)
     return acc
