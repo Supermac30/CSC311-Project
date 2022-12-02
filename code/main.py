@@ -26,14 +26,26 @@ def test_autoencoder_baby_steps(difficulty_measure, num_iterations_per_bucket, n
     model.plot_accuracy()
 
 
-def test_autoencoder_continuous_learning(difficulty_measure, goal_accuracy, num_iterations, reverse):
+def test_autoencoder_linear_continuous_learning(difficulty_measure, num_iterations, reverse):
+    model = AutoEncoder_Model(data, valid_data, num_users, num_questions, difficulty_measure)
+
+    slope = 0.2
+    bias = 0.5
+
+    def proportion_function(epoch_number):
+        return min(1, bias + slope * epoch_number)
+
+    model.continuous_learning(num_iterations, proportion_function, reverse)
+
+
+def test_autoencoder_continuous_validation_learning(difficulty_measure, goal_accuracy, num_iterations, reverse):
     """
     Run an experiment where we use an AutoEncoder with
     the baby-steps algorithm and the number of entries difficulty measure
     """
 
     model = AutoEncoder_Model(data, valid_data, num_users, num_questions, difficulty_measure)
-    model.continuous_learning(goal_accuracy, num_iterations, reverse)
+    model.continuous_validation_learning(goal_accuracy, num_iterations, reverse)
     print("Test Accuracy:", model.evaluate(data, test_data))
     model.plot_accuracy()
 
@@ -54,20 +66,46 @@ def test_irt_baby_steps(difficulty_measure, num_iterations_per_bucket, num_bucke
     print("Test Accuracy:", model.evaluate(data, test_data))
     model.plot_accuracy()
 
+def test_irt_linear_continuous_learning(difficulty_measure, num_iterations, reverse):
+    model = IRT_Model(data, valid_data, num_users, num_questions, difficulty_measure)
 
-def test_irt_continuous_learning(difficulty_measure, goal_accuracy, num_iterations, reverse):
+    slope = 0.2
+    bias = 0.5
+
+    def proportion_function(epoch_number):
+        return min(1, bias + slope * epoch_number)
+
+    model.continuous_learning(num_iterations, proportion_function, reverse)
+
+def test_irt_continuous_validation_learning(difficulty_measure, goal_accuracy, num_iterations, reverse):
     """
     Run an experiment where we use an AutoEncoder with
     the baby-steps algorithm and the number of entries difficulty measure
     """
 
     model = IRT_Model(data, valid_data, num_users, num_questions, difficulty_measure)
-    model.continuous_learning(goal_accuracy, num_iterations, reverse)
+    model.continuous_validation_learning(goal_accuracy, num_iterations, reverse)
     print("Test Accuracy:", model.evaluate(data, test_data))
     model.plot_accuracy()
 
 
 if __name__ == "__main__":
     # np.random.seed(42)
+    test_irt_continuous_validation_learning(number_of_entries_difficulty, 0.7, 500, False)
+    test_irt_continuous_validation_learning(autoencoder_difficulty, 0.7, 500, False)
+
+    test_irt_linear_continuous_learning(number_of_entries_difficulty, 500, False)
+    test_irt_linear_continuous_learning(autoencoder_difficulty, 500, False)
+
     test_irt_baby_steps(number_of_entries_difficulty, 20, 25, False)
-    test_autoencoder_baby_steps(autoencoder_difficulty, 10, 10, False)
+    test_irt_baby_steps(autoencoder_difficulty, 20, 25, False)
+
+
+    test_autoencoder_continuous_validation_learning(number_of_entries_difficulty, 0.7, 500, False)
+    test_autoencoder_continuous_validation_learning(autoencoder_difficulty, 0.7, 500, False)
+
+    test_autoencoder_linear_continuous_learning(number_of_entries_difficulty, 500, False)
+    test_autoencoder_linear_continuous_learning(autoencoder_difficulty, 500, False)
+
+    test_irt_baby_steps(number_of_entries_difficulty, 20, 25, False)
+    test_irt_baby_steps(autoencoder_difficulty, 20, 25, False)

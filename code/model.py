@@ -96,7 +96,30 @@ class Curriculum_Learner(Model):
             print("Completed Bucket", current_bucket)
             print()
 
-    def continuous_learning(self, goal_accuracy, number_of_epochs, reverse=False, lr=0.1):
+    def continuous_learning(self, number_of_epochs, proportion_function, reverse=False, lr=0.1):
+        """
+        Implements the continuous learning algorithm in page 7 of A Survey on Curriculum Learning
+
+        number_of_epochs is the number of epochs we run the algorithm for
+        proportion_function is a function that takes in the current_epoch, and returns a value n,
+            so that the easiest n% of the data is used to train the model (or hardest n%, if reverse=True).
+        """
+        def slice_data(data, proportion):
+            size = int(len(data["user_id"]) * proportion)
+            return {"user_id": data["user_id"][:size],
+                    "question_id": data["question_id"][:size],
+                    "is_correct": data["is_correct"][:size]}
+
+        sorted_data = self.difficulty_measurer(self.data, self.num_questions, self.num_users, reverse)
+
+        for epoch_number in range(number_of_epochs):
+            proportion = proportion_function(epoch_number)
+
+            self.train(slice_data(sorted_data, proportion), self.validation_data, lr, 10)
+            self.record_accuracy()
+
+
+    def continuous_validation_learning(self, goal_accuracy, number_of_epochs, reverse=False, lr=0.1):
         """
         Implements a continuous curriculum learning algorithm that
         uses the current validation accuracy to decide on how difficult the
@@ -111,22 +134,21 @@ class Curriculum_Learner(Model):
         number_of_epochs is the number of epochs we train the model for.
         """
         def slice_data(data, proportion):
-            size = len(data["user_id"]) * proportion
+            size = int(len(data["user_id"]) * proportion)
             return {"user_id": data["user_id"][:size],
                     "question_id": data["question_id"][:size],
                     "is_correct": data["is_correct"][:size]}
 
 
         sorted_data = self.difficulty_measurer(self.data, self.num_questions, self.num_users, reverse)
-        sorted_validation = self.difficulty_measurer(self.validation_data, self.num_questions, self.num_users, reverse)
 
         # Then, yield the buckets to train on:
         for _ in range(number_of_epochs):
             # Gets the current accuracy
-            current_accuracy = self.evaluate(self.data, self.sparse_validation)
+            current_accuracy = self.evaluate(self.data, self.validation_data)
             proportion = current_accuracy / goal_accuracy
 
-            self.train(slice_data(sorted_data, proportion), slice_data(sorted_validation, proportion), lr, 10)
+            self.train(slice_data(sorted_data, proportion), self.validation_data, lr, 10)
             self.record_accuracy()
 
     def record_accuracy(self):
