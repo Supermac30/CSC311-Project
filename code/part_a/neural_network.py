@@ -40,7 +40,7 @@ def load_data(base_path="../data"):
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, num_question, k=100):
+    def __init__(self, num_question, k=50):
         """ Initialize a class AutoEncoder.
 
         :param num_question: int
