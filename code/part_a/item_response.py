@@ -204,9 +204,10 @@ def part_d(theta, beta, question_nums, save_file_name):
 
 
 def hyperparam_grid_search(train_data, val_data, lr_incr, num_lr_incr, max_iter, save_file='save_hyper_param_runs.json'):
-    learning_rates = [(lr_incr * i) for i in range(1, num_lr_incr+1)]
-    irts = [irt(train_data, val_data, lr, max_iter) for lr in learning_rates]
-    save_hyper_param_data(save_file, irts, learning_rates)
+    # learning_rates = [(lr_incr * i) for i in range(1, num_lr_incr+1)]
+    # irts = [irt(train_data, val_data, lr, max_iter) for lr in learning_rates]
+    # save_hyper_param_data(save_file, irts, learning_rates)
+    learning_rates, irts = get_hyper_param_data('save_hyper_param_runs.json')
     val_accs = np.array([x[2] for x in irts])
     opt_lr_index, opt_iters = np.unravel_index(
         np.argmax(val_accs), val_accs.shape)
@@ -230,13 +231,14 @@ def main():
     # save_hyper_param_data('save_hyper_param_runs2.json', irts, learning_rates)
     # learning_rates, irts = get_hyper_param_data('save_hyper_param_runs.json')
 
-    # opt_lr, opt_iters = hyperparam_grid_search(train_data, val_data, 0.005, 20, 500)
-    opt_lr = 0.065
-    opt_iters = 5
+    # opt_lr, opt_iters = hyperparam_grid_search(
+    # train_data, val_data, 0.005, 20, 500)
 
+    lr = 0.06
+    iters = 200
     theta, beta, val_accs, train_llds, val_llds = irt(
-        train_data, val_data, opt_lr, opt_iters)
-    print(f"optimal learning rate and iterations is {opt_lr, opt_iters}")
+        train_data, val_data, lr, iters)
+    print(f"learning rate and iterations is {lr, iters}")
     print(f"final train accuracy is {evaluate(train_data, theta, beta)}")
     print(f"final validation accuracy is {evaluate(val_data, theta, beta)}")
     print(f"final test accuracy is {evaluate(test_data, theta, beta)}")
