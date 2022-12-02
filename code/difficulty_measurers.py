@@ -39,8 +39,12 @@ def autoencoder_difficulty(data, num_questions, num_students, reverse=False):
     # Reconstruct the data using the model
     reconstructions = model(zero_train_matrix)
 
+    # Put nans back into the right place.
+    reconstructions = reconstructions.detach().numpy()
+    reconstructions[np.isnan(train_matrix)] = np.nan
+
     def _number_correct(user):
-        return np.sum(train_matrix[user] == np.round(reconstructions[user].detach().numpy()))
+        return np.sum(train_matrix[user] == np.round(reconstructions[user]))
 
     return _sort_data(data, _number_correct, reverse)
 

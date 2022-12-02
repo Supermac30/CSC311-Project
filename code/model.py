@@ -46,6 +46,7 @@ class Curriculum_Learner(Model):
         self.validation_data = validation_data
 
         self.accuracy_record = [[], []]
+        self.xlabel = ""  # The label of the x-axis when plotting
         super().__init__(num_students, num_questions)
 
     def baby_steps(self, num_buckets, epochs_per_bucket, reverse=False, lr=0.1):
@@ -56,6 +57,7 @@ class Curriculum_Learner(Model):
         num_buckets is the number of buckets we will train the model on.
         epochs_per_bucket is the number of epochs we need until we increase the difficulty.
         """
+        self.xlabel = "Buckets"
         def split_dict_into_buckets(data):
             bucket_size = len(sorted_data["user_id"]) // num_buckets
             user_buckets = [data["user_id"][i * bucket_size : (i + 1) * bucket_size] for i in range(num_buckets)]
@@ -104,6 +106,7 @@ class Curriculum_Learner(Model):
         proportion_function is a function that takes in the current_epoch, and returns a value n,
             so that the easiest n% of the data is used to train the model (or hardest n%, if reverse=True).
         """
+        self.xlabel = "Iterations"
         def slice_data(data, proportion):
             size = int(len(data["user_id"]) * proportion)
             return {"user_id": data["user_id"][:size],
@@ -115,7 +118,7 @@ class Curriculum_Learner(Model):
         for epoch_number in range(number_of_epochs):
             proportion = proportion_function(epoch_number)
 
-            self.train(slice_data(sorted_data, proportion), self.validation_data, lr, 10)
+            self.train(slice_data(sorted_data, proportion), self.validation_data, lr, 1)
             self.record_accuracy()
 
 
@@ -133,6 +136,7 @@ class Curriculum_Learner(Model):
 
         number_of_epochs is the number of epochs we train the model for.
         """
+        self.xlabel = "Iterations"
         def slice_data(data, proportion):
             size = int(len(data["user_id"]) * proportion)
             return {"user_id": data["user_id"][:size],
@@ -148,7 +152,7 @@ class Curriculum_Learner(Model):
             current_accuracy = self.evaluate(self.data, self.validation_data)
             proportion = current_accuracy / goal_accuracy
 
-            self.train(slice_data(sorted_data, proportion), self.validation_data, lr, 10)
+            self.train(slice_data(sorted_data, proportion), self.validation_data, lr, 1)
             self.record_accuracy()
 
     def record_accuracy(self):
@@ -158,7 +162,7 @@ class Curriculum_Learner(Model):
     def plot_accuracy(self):
         plt.plot(self.accuracy_record[0], label="Training Accuracy")
         plt.plot(self.accuracy_record[1], label="Validation Accuracy")
-        plt.xlabel("Iterations")
+        plt.xlabel(self.xlabel)
         plt.ylabel("Accuracy")
         plt.legend()
         plt.show()
