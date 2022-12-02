@@ -189,3 +189,20 @@ def sparse_matrix_predictions(data, matrix, threshold=0.5):
         else:
             predictions.append(0.)
     return predictions
+
+def data_to_matrix(data, num_questions, num_students):
+    """
+    Given a dictionary of user_ids, question_ids,
+    and correct answers, return a data matrix
+    of the same form, where non-answered
+    questions are filled in with nan.
+    """
+    # Create the numpy array
+    data_matrix = np.full((num_students, num_questions), np.nan)
+
+    for i in range(len(data["user_id"])):
+        row = data["user_id"][i]
+        column = data["question_id"][i]
+        data_matrix[row, column] = data["is_correct"][i]
+
+    return data_matrix
