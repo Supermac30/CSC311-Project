@@ -49,7 +49,7 @@ class Curriculum_Learner(Model):
         self.xlabel = ""  # The label of the x-axis when plotting
         super().__init__(num_students, num_questions)
 
-    def baby_steps(self, num_buckets, epochs_per_bucket, reverse=False, lr=0.1):
+    def baby_steps(self, num_buckets, epochs_per_bucket, reverse=False, lr=0.001):
         """
         Implements the baby steps algorithm in page 7 of A Survey on Curriculum Learning
 
@@ -98,7 +98,7 @@ class Curriculum_Learner(Model):
             print("Completed Bucket", current_bucket)
             print()
 
-    def continuous_learning(self, number_of_epochs, proportion_function, reverse=False, lr=0.1):
+    def continuous_learning(self, number_of_epochs, proportion_function, reverse=False, lr=0.001):
         """
         Implements the continuous learning algorithm in page 7 of A Survey on Curriculum Learning
 
@@ -122,7 +122,7 @@ class Curriculum_Learner(Model):
             self.record_accuracy()
 
 
-    def continuous_validation_learning(self, goal_accuracy, number_of_epochs, reverse=False, lr=0.1):
+    def continuous_validation_learning(self, goal_accuracy, number_of_epochs, reverse=False, lr=0.001):
         """
         Implements a continuous curriculum learning algorithm that
         uses the current validation accuracy to decide on how difficult the
@@ -223,14 +223,19 @@ class IRT_Model(Curriculum_Learner):
         sigmoid_diffs = lr * (is_correct - IRT_Model.sigmoid(diffs))
 
         theta_i_diffs = [[] for _ in self.theta]
-        beta_j_diffs = [[] for _ in self.beta]
         for k in range(len(sigmoid_diffs)):
             theta_i_diffs[user_id[k]].append(sigmoid_diffs[k])
-            beta_j_diffs[question_id[k]].append(sigmoid_diffs[k])
 
         theta_derivs = np.array([(np.mean(x) if len(x) > 0 else 0) for x in theta_i_diffs])
-        beta_derivs = np.array([(np.mean(x) if len(x) > 0 else 0) for x in beta_j_diffs])
         self.theta = self.theta + theta_derivs
+
+        diffs = self.theta[user_id] - self.beta[question_id]
+        sigmoid_diffs = lr * (is_correct - IRT_Model.sigmoid(diffs))
+        beta_j_diffs =  [[] for _ in self.beta]
+        for k in range(len(sigmoid_diffs)):
+            beta_j_diffs[question_id[k]].append(sigmoid_diffs[k])
+
+        beta_derivs = np.array([(np.mean(x) if len(x) > 0 else 0) for x in beta_j_diffs])
         self.beta = self.beta - beta_derivs
 
     def train(self, data, val_data, lr, iterations):

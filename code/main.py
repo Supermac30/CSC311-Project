@@ -107,21 +107,21 @@ def test_irt_continuous_validation_learning(difficulty_measure, goal_accuracy, n
 
 if __name__ == "__main__":
     # np.random.seed(42)
-    test_irt_continuous_validation_learning(number_of_entries_difficulty, 0.8, 500, False)
-    test_irt_continuous_validation_learning(autoencoder_difficulty, 0.8, 500, False)
+    #test_irt_continuous_validation_learning(number_of_entries_difficulty, 0.71, 500, False)
+    #test_irt_continuous_validation_learning(autoencoder_difficulty, 0.71, 500, False)
 
-    test_irt_linear_continuous_learning(number_of_entries_difficulty, 500, False)
-    test_irt_linear_continuous_learning(autoencoder_difficulty, 500, False)
+    #test_irt_linear_continuous_learning(number_of_entries_difficulty, 500, False)
+    #test_irt_linear_continuous_learning(autoencoder_difficulty, 500, False)
 
-    test_irt_baby_steps(number_of_entries_difficulty, 20, 25, False)
-    test_irt_baby_steps(autoencoder_difficulty, 20, 25, False)
+    #test_irt_baby_steps(number_of_entries_difficulty, 20, 25, False)
+    #test_irt_baby_steps(autoencoder_difficulty, 20, 25, False)
 
 
-    test_autoencoder_continuous_validation_learning(number_of_entries_difficulty, 0.8, 500, False)
-    test_autoencoder_continuous_validation_learning(autoencoder_difficulty, 0.8, 500, False)
+    test_autoencoder_continuous_validation_learning(number_of_entries_difficulty, 0.71, 100, False)
+    test_autoencoder_continuous_validation_learning(autoencoder_difficulty, 0.71, 100, False)
 
-    test_autoencoder_linear_continuous_learning(number_of_entries_difficulty, 500, False)
-    test_autoencoder_linear_continuous_learning(autoencoder_difficulty, 500, False)
+    test_autoencoder_linear_continuous_learning(number_of_entries_difficulty, 100, False)
+    test_autoencoder_linear_continuous_learning(autoencoder_difficulty, 100, False)
 
     test_irt_baby_steps(number_of_entries_difficulty, 20, 25, False)
     test_irt_baby_steps(autoencoder_difficulty, 20, 25, False)
