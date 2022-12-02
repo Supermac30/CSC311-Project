@@ -25,15 +25,14 @@ def _sort_data(data, function, reverse):
     return {"user_id": sorted_users, "question_id": sorted_questions, "is_correct": sorted_is_correct}
 
 
-def autoencoder_difficulty(data, reverse=False):
+def autoencoder_difficulty(data, num_questions, num_students, reverse=False):
     """Sorts the data by looking at the accuracy of the autoencoder when reconstructing it."""
     model = torch.load("Autoencoder.pt")
-    num_questions = len(set(data["question_id"]))
-    num_students = len(set(data["user_id"]))
-    zero_train_matrix = data_to_matrix(data, num_questions, num_students)
+    train_matrix = data_to_matrix(data, num_questions, num_students)
+    zero_train_matrix = train_matrix.copy()
 
     # Fill in the missing entries to 0.
-    zero_train_matrix[np.isnan(zero_train_matrix)] = 0
+    zero_train_matrix[np.isnan(train_matrix)] = 0
     # Change to Float Tensor for PyTorch.
     zero_train_matrix = torch.FloatTensor(zero_train_matrix)
 
@@ -41,16 +40,12 @@ def autoencoder_difficulty(data, reverse=False):
     reconstructions = model(zero_train_matrix)
 
     def _number_correct(user):
-        count = 0
-        for i, value in enumerate(reconstructions[user]):
-            if zero_train_matrix[user, i] == round(value.item()):
-                count += 1
-        return count
+        return np.sum(train_matrix[user] == np.round(reconstructions[user].detach().numpy()))
 
     return _sort_data(data, _number_correct, reverse)
 
 
-def number_of_entries_difficulty(data, reverse=False):
+def number_of_entries_difficulty(data, num_questions, num_students, reverse=False):
     """Sorts the data by looking at the number of questions answered by each user"""
     return _sort_data(data, lambda n: data["user_id"].count(n), reverse)
 

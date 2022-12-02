@@ -45,10 +45,10 @@ class Curriculum_Learner(Model):
         self.data = data
         self.validation_data = validation_data
 
-        self.accuracy_record = []
+        self.accuracy_record = [[], []]
         super().__init__(num_students, num_questions)
 
-    def baby_steps(self, num_buckets, epochs_per_bucket, reverse=False):
+    def baby_steps(self, num_buckets, epochs_per_bucket, reverse=False, lr=0.1):
         """
         Implements the baby steps algorithm in page 7 of A Survey on Curriculum Learning
 
@@ -73,34 +73,30 @@ class Curriculum_Learner(Model):
             return user_buckets, question_buckets, is_correct_buckets
 
         # Split up the data into buckets
-        sorted_data = self.difficulty_measurer(self.data, reverse)
+        sorted_data = self.difficulty_measurer(self.data, self.num_questions, self.num_users, reverse)
         data_buckets = split_dict_into_buckets(sorted_data)
-        print("Done sorting data")
-
-        # Split up validation into buckets
-        sorted_valid = self.difficulty_measurer(self.validation_data, reverse)
-        valid_buckets = split_dict_into_buckets(sorted_valid)
 
         current_data = {"user_id": [], "question_id": [], "is_correct": []}
-        current_valid = {"user_id": [], "question_id": [], "is_correct": []}
         for current_bucket in range(num_buckets):
             current_data["user_id"] += data_buckets[0][current_bucket]
             current_data["question_id"] += data_buckets[1][current_bucket]
             current_data["is_correct"] += data_buckets[2][current_bucket]
 
-            current_valid["user_id"] += valid_buckets[0][current_bucket]
-            current_valid["question_id"] += valid_buckets[1][current_bucket]
-            current_valid["is_correct"] += valid_buckets[2][current_bucket]
+            # c = list(zip(current_data["user_id"], current_data["question_id"], current_data["is_correct"]))
+            # np.random.shuffle(c)
+            # current_data["user_id"], current_data["question_id"], current_data["is_correct"] = map(list, zip(*c))
 
             self.train(
                 current_data,
-                current_valid,
-                0.1,
+                self.validation_data,
+                lr,
                 epochs_per_bucket
             )
             self.record_accuracy()
+            print("Completed Bucket", current_bucket)
+            print()
 
-    def continuous_learning(self, goal_accuracy, number_of_epochs, reverse=False):
+    def continuous_learning(self, goal_accuracy, number_of_epochs, reverse=False, lr=0.1):
         """
         Implements a continuous curriculum learning algorithm that
         uses the current validation accuracy to decide on how difficult the
@@ -113,9 +109,6 @@ class Curriculum_Learner(Model):
         to hardest.
 
         number_of_epochs is the number of epochs we train the model for.
-
-        Note: The user of this function should call .send() to report the current
-        accuracy of the model.
         """
         def slice_data(data, proportion):
             size = len(data["user_id"]) * proportion
@@ -124,8 +117,8 @@ class Curriculum_Learner(Model):
                     "is_correct": data["is_correct"][:size]}
 
 
-        sorted_data = self.difficulty_measurer(self.data, reverse)
-        sorted_validation = self.difficulty_measurer(self.validation_data, reverse)
+        sorted_data = self.difficulty_measurer(self.data, self.num_questions, self.num_users, reverse)
+        sorted_validation = self.difficulty_measurer(self.validation_data, self.num_questions, self.num_users, reverse)
 
         # Then, yield the buckets to train on:
         for _ in range(number_of_epochs):
@@ -133,7 +126,7 @@ class Curriculum_Learner(Model):
             current_accuracy = self.evaluate(self.data, self.sparse_validation)
             proportion = current_accuracy / goal_accuracy
 
-            self.train(slice_data(sorted_data, proportion), slice_data(sorted_validation, proportion), 0.1, 10)
+            self.train(slice_data(sorted_data, proportion), slice_data(sorted_validation, proportion), lr, 10)
             self.record_accuracy()
 
     def record_accuracy(self):
@@ -145,6 +138,7 @@ class Curriculum_Learner(Model):
         plt.plot(self.accuracy_record[1], label="Validation Accuracy")
         plt.xlabel("Iterations")
         plt.ylabel("Accuracy")
+        plt.legend()
         plt.show()
 
 
@@ -166,7 +160,7 @@ class AutoEncoder_Model(Curriculum_Learner):
 
     def train(self, data, val_data, lr, iterations):
         train_matrix, zero_train_matrix = self._create_data_matrices(data)
-        train(self.model, lr, 0, train_matrix, zero_train_matrix, val_data, iterations)
+        train(self.model, lr, 0.1, train_matrix, zero_train_matrix, val_data, iterations)
 
     def evaluate(self, data, val_data):
         _, zero_train_matrix = self._create_data_matrices(data)
@@ -185,8 +179,8 @@ class IRT_Model(Curriculum_Learner):
 
     def __init__(self, data, validation_data, num_students, num_questions, difficulty_measurer):
         super().__init__(data, validation_data, num_students, num_questions, difficulty_measurer)
-        self.beta = np.zeros(self.num_users)
-        self.theta = np.zeros(self.num_questions)
+        self.theta = np.zeros(self.num_users)
+        self.beta = np.zeros(self.num_questions)
 
     @staticmethod
     def sigmoid(x):
@@ -202,31 +196,33 @@ class IRT_Model(Curriculum_Learner):
         diffs = self.theta[user_id] - self.beta[question_id]
         sigmoid_diffs = lr * (is_correct - IRT_Model.sigmoid(diffs))
 
-        theta_i_diffs = [[] for _ in theta]
-        beta_j_diffs = [[] for _ in beta]
+        theta_i_diffs = [[] for _ in self.theta]
+        beta_j_diffs = [[] for _ in self.beta]
         for k in range(len(sigmoid_diffs)):
             theta_i_diffs[user_id[k]].append(sigmoid_diffs[k])
             beta_j_diffs[question_id[k]].append(sigmoid_diffs[k])
 
-        theta_derivs = np.array([np.mean(x) for x in theta_i_diffs])
-        beta_derivs = np.array([np.mean(x) for x in beta_j_diffs])
-        theta = theta + theta_derivs
-        beta = beta - beta_derivs
+        theta_derivs = np.array([(np.mean(x) if len(x) > 0 else 0) for x in theta_i_diffs])
+        beta_derivs = np.array([(np.mean(x) if len(x) > 0 else 0) for x in beta_j_diffs])
+        self.theta = self.theta + theta_derivs
+        self.beta = self.beta - beta_derivs
 
     def train(self, data, val_data, lr, iterations):
         for _ in range(iterations):
-            self.theta, self.beta = self._update_theta_beta(data, lr)
+            self._update_theta_beta(data, lr)
 
     def evaluate(self, data, val_data):
         pred = []
-        for i, q in enumerate(data["question_id"]):
-            u = data["user_id"][i]
+        for i, q in enumerate(val_data["question_id"]):
+            u = val_data["user_id"][i]
             x = (self.theta[u] - self.beta[q]).sum()
             p_a = IRT_Model.sigmoid(x)
             pred.append(p_a >= 0.5)
-        return np.sum((data["is_correct"] == np.array(pred))) \
-            / len(data["is_correct"])
+        return np.sum((val_data["is_correct"] == np.array(pred))) \
+            / len(val_data["is_correct"])
 
-    def predict(self, sparse_matrix, user_id, question_id):
+    def predict(self, data, user_id, question_id):
         x = self.theta[user_id] - self.beta[question_id]
         return IRT_Model.sigmoid(x) >= 0.5
+
+
