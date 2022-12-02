@@ -58,19 +58,28 @@ def update_theta_beta(data, lr, theta, beta):
     # Implement the function as described in the docstring.             #
     #####################################################################
     user_id, question_id, is_correct = data["user_id"], data["question_id"], data["is_correct"]
+    # update theta
     diffs = theta[user_id] - beta[question_id]
     sigmoid_diffs = lr * (is_correct - sigmoid(diffs))
 
     theta_i_diffs = [[] for _ in theta]
-    beta_j_diffs = [[] for _ in beta]
     for k in range(len(sigmoid_diffs)):
         theta_i_diffs[user_id[k]].append(sigmoid_diffs[k])
-        beta_j_diffs[question_id[k]].append(sigmoid_diffs[k])
 
     theta_derivs = np.array([np.mean(x) for x in theta_i_diffs])
-    beta_derivs = np.array([np.mean(x) for x in beta_j_diffs])
     theta = theta + theta_derivs
+    # print(theta[0:5])
+    # beta0 = beta[0:5]
+    diffs = theta[user_id] - beta[question_id]
+    sigmoid_diffs = lr * (is_correct - sigmoid(diffs))
+    beta_j_diffs = [[] for _ in beta]
+    for k in range(len(sigmoid_diffs)):
+        beta_j_diffs[question_id[k]].append(sigmoid_diffs[k])
+
+    beta_derivs = np.array([np.mean(x) for x in beta_j_diffs])
+
     beta = beta - beta_derivs
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -89,15 +98,15 @@ def irt(data, val_data, lr, iterations):
     is_correct: list}
     :param lr: float
     :param iterations: int
-    :return: (theta, beta, val_acc_list, train_neg_lld_list, val_neg_lld_list)
+    :return: (theta, beta, val_accs, train_neg_lld_list, val_neg_lld_list)
     """
     # Initialize theta and beta.
     num_users = max(data["user_id"]) + 1
-    num_questoins = max(data["question_id"]) + 1
+    num_questions = max(data["question_id"]) + 1
     theta = np.zeros(num_users)
-    beta = np.zeros(num_questoins)
+    beta = np.zeros(num_questions)
 
-    val_acc_list = []
+    val_accs = []
 
     train_neg_lld_list = []
     val_neg_lld_list = []
@@ -108,13 +117,13 @@ def irt(data, val_data, lr, iterations):
         val_neg_lld_list.append(val_neg_lld)
 
         score = evaluate(data=val_data, theta=theta, beta=beta)
-        val_acc_list.append(score)
+        val_accs.append(score)
         # print("NLLK: {} \t Score: {}".format(neg_lld, score))
         theta, beta = update_theta_beta(data, lr, theta, beta)
 
     # TODO: You may change the return values to achieve what you want.
-    return theta, beta, val_acc_list, train_neg_lld_list, val_neg_lld_list
-    # return {"theta":theta, "beta":beta, "val_acc_list": val_acc_list, "train_neg_lld_list": train_neg_lld_list, "val_neg_lld_list": val_neg_lld_list}
+    return theta, beta, val_accs, train_neg_lld_list, val_neg_lld_list
+    # return {"theta":theta, "beta":beta, "val_accs": val_accs, "train_neg_lld_list": train_neg_lld_list, "val_neg_lld_list": val_neg_lld_list}
 
 
 def evaluate(data, theta, beta):
@@ -140,9 +149,9 @@ def save_hyper_param_data(file_name: str, irts, learning_rates):
     with open(file_name, "w") as f:
         cleaned_up = {}
         for i in range(len(irts)):
-            theta, beta, val_acc_list, train_llds, val_llds = irts[i]
+            theta, beta, val_accs, train_llds, val_llds = irts[i]
             cleaned_up[learning_rates[i]] = {"theta": list(theta), "beta": list(
-                beta), "val_acc_list": val_acc_list, "train_llds": train_llds, "val_llds": val_llds}
+                beta), "val_acc_list": val_accs, "train_llds": train_llds, "val_llds": val_llds}
         json.dump(cleaned_up, f)
 
 
@@ -176,23 +185,34 @@ def plot_lld_curves(train_llds, val_llds, save_file_name):
     ax_val.label_outer()
     fig.tight_layout()
 
-    fig.savefig("lld_curves.png", bbox_inches='tight')
+    fig.savefig("IRT_lld_curves.png", bbox_inches='tight')
     plt.close(fig)
 
 
-def part_d(theta, beta, q_nums, save_file_name):
-    beta_vals = beta[q_nums].reshape(-1, 1)
-    print(beta_vals)
-    theta_vals = np.arange(-10, 10, 0.1)
+def part_d(theta, beta, question_nums, save_file_name):
+    beta_vals = beta[question_nums].reshape(-1, 1)
+    theta_vals = np.arange(-5, 5, 0.1)
     diffs = np.apply_along_axis(lambda x: theta_vals - x, 1, beta_vals)
     curves = sigmoid(diffs)
-    for i in range(len(q_nums)):
-        plt.plot(theta_vals, curves[i], label=f"Question {q_nums[i]}")
+    for i in range(len(question_nums)):
+        plt.plot(theta_vals, curves[i], label=f"Question {question_nums[i]}")
 
     plt.xlabel = r"$\theta_i$"
     plt.ylabel = r"$p(c_{ij} | \theta_i, \beta_j)$"
     plt.legend()
     plt.savefig(save_file_name, bbox_inches='tight')
+
+
+def hyperparam_grid_search(train_data, val_data, lr_incr, num_lr_incr, max_iter, save_file='save_hyper_param_runs.json'):
+    learning_rates = [(lr_incr * i) for i in range(1, num_lr_incr+1)]
+    irts = [irt(train_data, val_data, lr, max_iter) for lr in learning_rates]
+    save_hyper_param_data(save_file, irts, learning_rates)
+    val_accs = np.array([x[2] for x in irts])
+    opt_lr_index, opt_iters = np.unravel_index(
+        np.argmax(val_accs), val_accs.shape)
+    opt_lr = learning_rates[opt_lr_index]
+    #  theta, beta, val_accs, train_llds, val_llds = irts[opt_lr_index]
+    return opt_lr, opt_iters
 
 
 def main():
@@ -206,23 +226,19 @@ def main():
     # Tune learning rate and number of iterations. With the implemented #
     # code, report the validation and test accuracy.                    #
     #####################################################################
-    learning_rates = [(0.005 * i) for i in range(1, 21)]
-    max_iterations = 500
-    irts = [irt(train_data, val_data, lr, max_iterations)
-            for lr in learning_rates]
 
-    save_hyper_param_data('save_hyper_param_runs2.json', irts, learning_rates)
+    # save_hyper_param_data('save_hyper_param_runs2.json', irts, learning_rates)
     # learning_rates, irts = get_hyper_param_data('save_hyper_param_runs.json')
 
-    val_accs = np.array([x[2] for x in irts])
-    opt_lr_index, opt_iters = np.unravel_index(
-        np.argmax(val_accs), val_accs.shape)
-    opt_lr = learning_rates[opt_lr_index]
-    theta, beta, val_acc_list, train_llds, val_llds = irts[opt_lr_index]
+    # opt_lr, opt_iters = hyperparam_grid_search(train_data, val_data, 0.005, 20, 500)
+    opt_lr = 0.065
+    opt_iters = 5
 
+    theta, beta, val_accs, train_llds, val_llds = irt(
+        train_data, val_data, opt_lr, opt_iters)
     print(f"optimal learning rate and iterations is {opt_lr, opt_iters}")
-    print(f"final train accuracy is {evaluate(val_data, theta, beta)}")
-    print(f"final validation accuracy is {val_acc_list[opt_iters]}")
+    print(f"final train accuracy is {evaluate(train_data, theta, beta)}")
+    print(f"final validation accuracy is {evaluate(val_data, theta, beta)}")
     print(f"final test accuracy is {evaluate(test_data, theta, beta)}")
 
     plot_lld_curves(train_llds, val_llds, "lld_curves.png")
@@ -233,7 +249,7 @@ def main():
     #####################################################################
     # Implement part (d)                                                #
     #####################################################################
-    part_d(theta, beta, [3, 10, 100], "question_curves.png")
+    part_d(theta, beta, [3, 10, 100], "ITRd_question_curves.png")
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
