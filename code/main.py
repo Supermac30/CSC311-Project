@@ -72,7 +72,6 @@ def test_autoencoder_continuous_validation_learning(difficulty_measure, goal_acc
     print("Test Accuracy:", model.evaluate(data, test_data))
     #model.plot_accuracy()
 
-
 def test_irt_baby_steps(difficulty_measure, num_iterations_per_bucket, num_buckets, reverse):
     """
     Run an experiment where we use an AutoEncoder with
@@ -102,6 +101,20 @@ def test_irt_linear_continuous_learning(difficulty_measure, num_iterations, reve
     print("Test Accuracy:", model.evaluate(data, test_data))
     #model.plot_accuracy()
 
+def test_irt_root_continuous_learning(difficulty_measure, num_iterations, reverse):
+    model = IRT_Model(data, valid_data, num_users, num_questions, difficulty_measure)
+
+    slope = 0.00005  # Chosen so that after 500 iterations, we train on all the data
+    bias = 0.5
+
+    def pacing_function(epoch_number):
+        return min(1, (2 * slope * epoch_number + bias) ** 0.5)
+
+    model.continuous_learning(num_iterations, pacing_function, reverse, lr=0.065)
+    print("Test Accuracy:", model.evaluate(data, test_data))
+    #model.plot_accuracy()
+
+    
 def test_irt_continuous_validation_learning(difficulty_measure, goal_accuracy, num_iterations, reverse):
     """
     Run an experiment where we use an AutoEncoder with
@@ -118,9 +131,6 @@ def test_irt_continuous_validation_learning(difficulty_measure, goal_accuracy, n
 
 
 if __name__ == "__main__":
-    # np.random.seed(42)
-
-    
     print("IRT + baby steps + question-based correctness entropy difficulty")
     test_irt_baby_steps(question_difficulty_correctness_entropy, 20, 20, False) # (20, 20) Best parameter.
     
