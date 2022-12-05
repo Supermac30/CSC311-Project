@@ -15,20 +15,30 @@ import csv
 import os
 
 
+def string_list_parser(str_list):
+    """
+    Given a string that represents a list e.g. "[1, 23, 456]", return the actual list it represents.
+    """
+    new_str_list = str_list[1:len(str_list)-1]
+    new_str_list = new_str_list.split(", ")
+    return new_str_list
+    
+
 
 def find_subjects():
     """
     Return a list of <subject_id> as in "question_meta.csv".
     """ 
     # Work with "question_meta.csv" then put into dictionary form: dict[question_id] = a list of subject_id.
-    question_meta_path = "code/data/question_meta.csv"
+    question_meta_path = "./data/question_meta.csv"
     question_meta_dict = {}
     with open(question_meta_path, "r") as csv_file:
         reader = csv.reader(csv_file)
         for row in reader:
             try:
                 subject_list = []
-                for item in list(row[1]):
+                converted_list = string_list_parser(row[1])
+                for item in converted_list:
                     try: 
                         temp = int(item);
                         subject_list.append(temp)
@@ -89,8 +99,11 @@ def subject_correctness_entropy():
     for item in question_meta_dict.items():
         question_id = item[0]
         subject_list = item[1]
+
         num_correct = len(np.nonzero(sparse_matrix[question_id] == 1))
+
         num_all = num_correct + len(np.nonzero(sparse_matrix[question_id] == 0))
+
         for subject in subject_list:
             subject_correctness_rate_dict[subject][0] += 1
             subject_correctness_rate_dict[subject][1] += num_correct
@@ -101,8 +114,12 @@ def subject_correctness_entropy():
     for subject in subject_correctness_rate_dict:
         # subject_correctness_rate_dict[subject][3] = subject_correctness_rate_dict[subject][1] / subject_correctness_rate_dict[subject][2]
         num_correct = subject_correctness_rate_dict[subject][1] 
-        num_all = subject_correctness_rate_dict[subject][2]
-        correctness_rate = num_correct / num_all
+        num_all = subject_correctness_rate_dict[subject][2] 
+        
+        if ((num_correct == 0) and (num_all == 0)):
+            correctness_rate = 0
+        else:
+            correctness_rate = num_correct / num_all
         p_1 = correctness_rate
         p_2 = 1 - p_1
         if (p_1 == 0):
@@ -146,12 +163,23 @@ def question_difficulty_correctness_entropy(sparse_matrix, reverse=False):
         """
         Given <question_id>, return the entropy of the "most difficult" subject (i.e. higest entropy) this question belongs to from <subjbect_entropy_dict>.
         """
+
+        # DEBUG:
+        #print(question_id) 
+
         subjects = question_subjects_dict[question_id]
-        return  max([subject_entropy_dict[subject] for subject in subjects])
+        return max([subject_entropy_dict[subject] for subject in subjects])
 
 
-    matrix_question_based = sparse_matrix.toarray().transpose()
-    return sorted(matrix_question_based, key=lambda question_row: find_entropy(np.where(question_row)), reverse=reverse)  # Python <sorted()> function is default to be ascending order.
+    matrix_question_based = [list(row) for row in sparse_matrix.toarray().transpose()]
+    #print(matrix_question_based)
+    #return sorted(matrix_question_based, key=lambda question_row: find_entropy(np.where(matrix_question_based is question_row)), reverse=reverse)  # Python <sorted()> function is default to be ascending order.
+    #return sorted(matrix_question_based, key=lambda question_row: find_entropy(np.where(np.all(matrix_question_based==question_row, axis=1))), reverse=reverse)  # Python <sorted()> function is default to be ascending order.
+    return sorted(matrix_question_based, key=lambda question_row: find_entropy(matrix_question_based.index(question_row)), reverse=reverse)  # Python <sorted()> function is default to be ascending order.
+
+
+
+    # TODO: Use dictionary form instead because <np.where> relies on assumption that every row is unique. Actually why not just check whether there is repeating elements. Tried in main section and ensured the question based matrix does not have duplicate!!! 
 
 
 
@@ -160,3 +188,17 @@ def question_difficulty_correctness_entropy(sparse_matrix, reverse=False):
 # TODO: If have time, can merge two measures together, and weight entropy with number of occurrence. Although this needs careful treatment like some normalization.
 #def question_difficulty_CEO(): # Correctness Entropy + Occurrnece.
 #    pass
+
+
+if __name__ == "__main__":
+    matrix = load_train_sparse("./data/")
+    
+    # Ensure that matrix does not have duplicate.
+    #matrix_copy = load_train_sparse("./data/").toarray().transpose()
+    #matrix_copy = [list(row) for row in matrix_copy]
+    #print(matrix_copy)
+    
+    #for row in matrix_copy:
+    #    assert matrix_copy.count(row) == 1
+
+    print(question_difficulty_correctness_entropy(matrix))
