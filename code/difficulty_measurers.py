@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from part_a.neural_network import AutoEncoder
 from utils import *
+from random import random
 
 
 def _sort_data(data, function, reverse):
@@ -53,3 +54,7 @@ def number_of_entries_difficulty(data, num_questions, num_students, reverse=Fals
     """Sorts the data by looking at the number of questions answered by each user"""
     return _sort_data(data, lambda n: data["user_id"].count(n), reverse)
 
+
+def random_difficulty(data, num_questions, num_students, reverse=False):
+    """Sorts the data randomly for the purpose of testing"""
+    return _sort_data(data, lambda n: random(), reverse)
