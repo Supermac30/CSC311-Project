@@ -64,10 +64,10 @@ def main():
     val_data = load_valid_csv("../data")
     test_data = load_public_test_csv("../data")
 
-    print("Sparse matrix:")
-    print(sparse_matrix)
-    print("Shape of sparse matrix:")
-    print(sparse_matrix.shape)
+    #print("Sparse matrix:")
+    #print(sparse_matrix)
+    #print("Shape of sparse matrix:")
+    #print(sparse_matrix.shape)
 
     #####################################################################
     # TODO:                                                             #
