@@ -165,4 +165,4 @@ if __name__ == "__main__":
     print("Autoencoder + baby steps + number-of-entries difficulty")
     test_autoencoder_baby_steps(number_of_entries_difficulty, 40, 15, False)
     print("Autoencoder + baby steps + audoencoder difficulty")
-    #test_autoencoder_baby_steps(autoencoder_difficulty, 40, 15, False)
+    test_autoencoder_baby_steps(autoencoder_difficulty, 40, 15, False)
