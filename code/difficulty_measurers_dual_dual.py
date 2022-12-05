@@ -70,7 +70,11 @@ def subject_occurrence():
     Return dictionary: dict[subject_id] = occurrence.
     """
     # 1. Work with "question_meta.csv". Check out <load_csv>.
+    question_meta_dict = find_subjects()
+    
     # 2. Transform to all elements into an array of id, not counting '0' as it occurs everywhere.
+     
+
     # 3. Use Python list method to count occurrnece.
     
     # TODO: This function is part of <subject_correctness_entropy>.
@@ -157,7 +161,8 @@ def subject_correctness_entropy():
     #matrix_question_based = sparse_matrix.toarray().transpose()
     
 
-def question_difficulty_correctness_entropy(data, reverse=False):
+def question_difficulty_correctness_entropy(data, num_question, num_student,reverse=False):
+    # <num_question> & <num_student> is redundant but to match "model.py".
     # Same as <question_difficulty_occurrence>. Note "Higher entropy" = "More difficult for ML".
     # <data> is of form: <{"user_id": [user_id's], "question_id": [question_id's], "is_correct": [0's and 1's]}>
 
