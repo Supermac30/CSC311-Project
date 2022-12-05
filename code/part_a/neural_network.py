@@ -80,7 +80,7 @@ class AutoEncoder(nn.Module):
         return out
 
 
-def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
+def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch, plot=False):
     """ Train the neural network, where the objective also includes
     a regularizer.
 
@@ -129,22 +129,23 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
         valid_acc = evaluate(model, zero_train_data, valid_data)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
-        train_losses.append(train_loss.item())
+        train_losses.append(train_loss.item() / num_student)
         valid_accuracies.append(valid_acc)
 
     # Plot performance
-    figure, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-    ax2.set_xlabel("Epoch")
-    ax1.set_ylabel("Loss")
-    ax2.set_ylabel("Accuracy")
+    if plot:
+        _, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+        ax2.set_xlabel("Epoch")
+        ax1.set_ylabel("Loss")
+        ax2.set_ylabel("Accuracy")
 
-    ax1.plot(train_losses, label="Training Loss")
-    ax2.plot(valid_accuracies, label="Validation Accuracy")
-    ax1.xaxis.get_major_locator().set_params(integer=True)
+        ax1.plot(train_losses, label="Training Loss")
+        ax2.plot(valid_accuracies, label="Validation Accuracy")
+        ax1.xaxis.get_major_locator().set_params(integer=True)
 
-    ax1.legend()
-    ax2.legend()
-    plt.show()
+        ax1.legend()
+        ax2.legend()
+        plt.show()
 
 
     #####################################################################
@@ -180,26 +181,27 @@ def evaluate(model, train_data, valid_data):
 
 def main():
     zero_train_matrix, train_matrix, valid_data, test_data = load_data()
-
     #####################################################################
     # Try out 5 different k and select the best k using the             #
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = 200
+    k = 50
     num_question = train_matrix.shape[1]
     model = AutoEncoder(num_question, k)
 
     # Set optimization hyperparameters.
     lr = 0.001
-    num_epoch = 5000
-    lamb = 0
+    num_epoch = 400
+    lamb = 0.001
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
 
     test_accuracy = evaluate(model, zero_train_matrix, test_data)
     print("Test Accuracy:", test_accuracy)
+
+    torch.save(model, "Autoencoder.pt")
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
