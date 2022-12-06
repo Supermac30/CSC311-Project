@@ -62,26 +62,6 @@ def find_subjects():
     return question_meta_dict
 
 
-
-def subject_occurrence():
-    """
-    Rank subjects by the number of occurrence in all questions. "Less occurrence" = "More difficult for ML".
-    
-    Return dictionary: dict[subject_id] = occurrence.
-    """
-    # 1. Work with "question_meta.csv". Check out <load_csv>.
-    question_meta_dict = find_subjects()
-    
-    # 2. Transform to all elements into an array of id, not counting '0' as it occurs everywhere.
-     
-
-    # 3. Use Python list method to count occurrnece.
-    
-    # TODO: This function is part of <subject_correctness_entropy>.
-    
-
-
-
 def subject_correctness_entropy():
     """
     Rank subjects by the correctness rate. Perhaps use entropy. "Higher entropy" = "More difficult for ML".
@@ -153,14 +133,6 @@ def subject_correctness_entropy():
     return subject_entropy_dict
 
 
-
-#def question_difficulty_occurrence(sparse_matrix, reverse=False):
-    # 1. Use <sparse_matrix.toarray()>.
-    # 2. Python sort dict key by dict value. Note "Less occurrence" = "More difficult for ML".
-    
-    #matrix_question_based = sparse_matrix.toarray().transpose()
-    
-
 def question_difficulty_correctness_entropy(data, num_question, num_student,reverse=False):
     # <num_question> & <num_student> is redundant but to match "model.py".
     # Same as <question_difficulty_occurrence>. Note "Higher entropy" = "More difficult for ML".
@@ -175,25 +147,10 @@ def question_difficulty_correctness_entropy(data, num_question, num_student,reve
         Given <question_id>, return the entropy of the "most difficult" subject (i.e. higest entropy) this question belongs to from <subjbect_entropy_dict>.
         """
 
-        # DEBUG:
-        #print(question_id) 
-
         subjects = question_subjects_dict[question_id]
         return max([subject_entropy_dict[subject] for subject in subjects])
 
-
-    #matrix_question_based = [list(row) for row in sparse_matrix.toarray().transpose()]
-    #return sorted(matrix_question_based, key=lambda question_row: find_entropy(matrix_question_based.index(question_row)), reverse=reverse)  # Python <sorted()> function is default to be ascending order.
-
     return _sort_data_question_based(data, lambda question_id: find_max_entropy(question_id), reverse)
-
-
-
-    # DID NOT Use dictionary form instead because <np.where> relies on assumption that every row is unique. Actually why not just check whether there is repeating elements. Tried in main section and ensured the question based matrix does not have duplicate!!! 
-
-# TODO: If have time, can merge two measures together, and weight entropy with number of occurrence. Although this needs careful treatment like some normalization.
-#def question_difficulty_CEO(): # Correctness Entropy + Occurrnece.
-#    pass
 
 
 if __name__ == "__main__":
@@ -201,13 +158,5 @@ if __name__ == "__main__":
     # Running main function for debugging purpose.
 
     train_data = load_train_csv("./data")
-    
-    # Ensure that matrix does not have duplicate.
-    #matrix_copy = load_train_sparse("./data/").toarray().transpose()
-    #matrix_copy = [list(row) for row in matrix_copy]
-    #print(matrix_copy)
-    
-    #for row in matrix_copy:
-    #    assert matrix_copy.count(row) == 1
 
-    print(question_difficulty_correctness_entropy(train_data))
+    print(question_difficulty_correctness_entropy(train_data, 0, 0, False))
